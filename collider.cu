@@ -91,7 +91,7 @@ __device__ void showProgress(char* trystr, int tam, unsigned long long int id)
 
 __global__ void findcollisions(int hash, unsigned long long int strLength)
 {
-    unsigned long long int id = blockDim.x * blockIdx.x + threadIdx.x; //+ i* /*4e40*/;
+    unsigned long long int id = blockDim.x * blockIdx.x + threadIdx.x + strLength; //+ i* /*4e40*/;
 
     char *trystr = id2str(id);
     int hc;
@@ -140,11 +140,13 @@ int main(void)
 
     int length = strlen(input_string);
 
+    unsigned long long int sum = 0;//pow(96, length-1) - pow(96, length-3);
+
     int hash = shc(input_string, length);
 
     printf("\nSearching collisions for hashcode of ┤%s├: %d\n →→ START ←←\n\n", input_string, hash);
 
-    findcollisions<<<pow(2,23),pow(2,10)>>>(hash, (unsigned long long int) pow(95, length)); //<<<2^23, 2^10>>>
+    findcollisions<<<pow(2,23),pow(2,10)>>>(hash, sum); //<<<2^23, 2^10>>>
    
     cudaDeviceSynchronize();
     
