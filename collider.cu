@@ -62,9 +62,11 @@ __device__ char * id2str(unsigned long long int n)
     } 
     while(p!=0);
 
-    res = (char*) malloc(count);
+    res = (char*) malloc(count+1);
 
     for(i=count-1; i>=0; --i) res[count-i-1] = a[i];
+
+    res[count] = '\n';
 
     free(a);
 
@@ -74,47 +76,64 @@ __device__ char * id2str(unsigned long long int n)
 __global__ void findcollisions(int hash, int f)
 {
     unsigned long long int id = (unsigned long long int) blockDim.x * (unsigned long long int) blockIdx.x + (unsigned long long int) threadIdx.x; //+ i* /*4e40*/;
+
+    if(id % 1000000000 == 0)
+    {
+        printf("\nid = %d\n", id);
+    }
     
-    char* trystr = id2str(id);
+    char *trystr = id2str(id);
+    int hc=0;
 
-    int hc = shc(trystr);
+    hc = shc(trystr);
 
-    printf("┤%s├ hashcode: %d\n", trystr, hc);
     
     if(hc == hash)
     {
-        printf("Collision found with string %s, hash code: %d\n", trystr, hc);
+        printf("Collision found with hashcode %d for string  ┤%s├\n", hc, trystr);
     }
     else
     {
         int tam = 0;
+        
 
         while(trystr[tam]!='\0')
             tam++;
 
+        char c = '!';
+        int n=0;
+
+        for(int i=0;i<tam-1;i++)
+        {
+            if(c != trystr[i])
+            {
+                n = 1;
+            }
+
+        }
+
+        if(n == 0 && tam >2)
+        {
+            printf("Tam = %d\n", tam-1);
+        }
+
         if(trystr[tam-1] == ' ')
         {
-            
-            
             char * reverse;
             reverse = (char *) malloc(tam);
 
             for(int i=tam-1; i>=0; --i) reverse[tam-i-1] = trystr[i];
 
             hc = shc(reverse);
-            printf("┤%s├ hashcode: %d\n", reverse, hc);
             
             if(hc == hash)
-                printf("Collision found with string %s, hash code: %d", trystr, hc);
+                printf("Collision found with hashcode %d for string ┤%s├", hc, trystr);
             
     
             free(reverse);
-        
         }
     }
-
     free(trystr);
-   
 }
 
 
@@ -128,9 +147,9 @@ int main(void)
     input_string = getstr(stdin, input_string);
     int hash = shc(input_string);
     
-    printf("\nhashcode: %d\n", hash);
+    printf("hashcode: %d\n\n", hash);
 
-    findcollisions<<</*1073741824*/3,47>>>(hash, 0); //<<<2^23, 2^10>>>
+    findcollisions<<<1073741824,1024>>>(hash, 0); //<<<2^23, 2^10>>>
 
    
     cudaDeviceSynchronize();
