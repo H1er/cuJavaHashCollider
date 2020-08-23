@@ -46,7 +46,8 @@ __device__ __host__  int shc(char* ca)
 __device__ char * id2str(unsigned long long int n) 
 {
     //Convert the id of the thread into the string in order to be checked
-    int b=95, i, r, digit, p, count=0;
+    int b=95, i, r, digit, count=0;
+    unsigned long long int p;
     char * a, * res;// clrscr();
     p=n;
  
@@ -79,7 +80,7 @@ __global__ void findcollisions(int hash, int f)
 
     if(id % 1000000000 == 0)
     {
-        printf("\nid = %d\n", id);
+        printf("\nid = %lld\n", id);
     }
     
     char *trystr = id2str(id);
