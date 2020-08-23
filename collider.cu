@@ -86,12 +86,12 @@ __device__ void showProgress(char* trystr, int tam, unsigned long long int id)
 
     if(id % 1000000000 == 0) printf("\n----- Id = %lld\n", id);
 
-    if(n == 0) printf("\n***** Tam = %d -> ┤%s├\n", tam, trystr);
+    if(n == 0) printf("\n***** %lld, Tam = %d -> ┤%s├\n", id, tam, trystr);
 }
 
-__global__ void findcollisions(int hash, int strLength)
+__global__ void findcollisions(int hash, unsigned long long int strLength)
 {
-    unsigned long long int id = (unsigned long long int) blockDim.x * (unsigned long long int) blockIdx.x + (unsigned long long int) threadIdx.x + ; //+ i* /*4e40*/;
+    unsigned long long int id = blockDim.x * blockIdx.x + threadIdx.x; //+ i* /*4e40*/;
 
     char *trystr = id2str(id);
     int hc;
@@ -101,6 +101,8 @@ __global__ void findcollisions(int hash, int strLength)
     while(trystr[tam]!='\0')
         tam++;
 
+
+    //if (oldId < 50) printf("%lld, ┤%s├\n", id, trystr);
     showProgress(trystr, tam, id);
 
     hc = shc(trystr, tam);
@@ -136,11 +138,13 @@ int main(void)
    
     input_string = getstr(stdin, input_string);
 
-    int hash = shc(input_string, strlen(input_string));
+    int length = strlen(input_string);
+
+    int hash = shc(input_string, length);
 
     printf("\nSearching collisions for hashcode of ┤%s├: %d\n →→ START ←←\n\n", input_string, hash);
 
-    findcollisions<<<pow(2,23),pow(2,10)>>>(hash, 0); //<<<2^23, 2^10>>>
+    findcollisions<<<pow(2,23),pow(2,10)>>>(hash, (unsigned long long int) pow(95, length)); //<<<2^23, 2^10>>>
    
     cudaDeviceSynchronize();
     
