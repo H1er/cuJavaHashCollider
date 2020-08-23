@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 
 char * getstr(FILE* f, char * str)
@@ -10,32 +11,30 @@ char * getstr(FILE* f, char * str)
     int pos = 0;
     str = (char*) malloc(size);
     
-    while(l != '\0' && l != '\n')
+    while(l != '\n')
     {
         scanf("%c", &l);
 
         str[pos] = l;
         pos++;
 
-         if(pos > size)
-        {
-            str = (char*) realloc(str, size*2);
-        }
+        if(pos > size)
+            str = (char*) realloc(str, size^2);
     }
 
     fflush(stdin);
     
-    return (char *)realloc(str, pos);
+    str = (char *) realloc(str, pos);
+
+    str[pos-1] = '\0';
+    return str;
 }
 
-__device__ __host__  int shc(char* ca) 
+__device__ __host__  int shc(char* ca, int tam) 
 {
-    int h = 0, tam=0;
-
-    while(ca[tam]!='\0')
-        tam++;
-      
-    for (int i = 0; i < tam-1; i++) 
+    int h = 0;
+    
+    for (int i = 0; i < tam; i++) 
     {
         h = 31 * h + ca[i];
     }
@@ -46,115 +45,107 @@ __device__ __host__  int shc(char* ca)
 __device__ char * id2str(unsigned long long int n) 
 {
     //Convert the id of the thread into the string in order to be checked
-    int b=95, i, r, digit, count=0;
-    unsigned long long int p;
-    char * a, * res;// clrscr();
-    p=n;
+    int b=96, r, asciChar, count=0;
+    char * a, * res;
  
-    a = (char*) malloc(100); //cudaMallocManaged(&a, 100);
+    a = (char*) malloc(100);
 
     do 
     {
-        r=p%b;
-        digit=32+r;
-        a[count]=digit;
+        r=n%b;
+        asciChar=32+r;
+        a[count]=asciChar;
         count++;
-        p=p/b;
+        n=n/b;
     } 
-    while(p!=0);
+    while(n!=0);
 
     res = (char*) malloc(count+1);
 
-    for(i=count-1; i>=0; --i) res[count-i-1] = a[i];
-
-    res[count] = '\n';
+    for(int i=count-1; i>=0; --i) res[count-i-1] = a[i];
 
     free(a);
+
+    res[count] = '\0';
 
     return res;
 }
 
-__global__ void findcollisions(int hash, int f)
+__device__ void showProgress(char* trystr, int tam, unsigned long long int id)
 {
-    unsigned long long int id = (unsigned long long int) blockDim.x * (unsigned long long int) blockIdx.x + (unsigned long long int) threadIdx.x; //+ i* /*4e40*/;
+    int n=0;
 
-    if(id % 1000000000 == 0)
+    for(int i=0;i<tam;i++)
     {
-        printf("\nid = %lld\n", id);
-    }
-    
-    char *trystr = id2str(id);
-    int hc=0;
-
-    hc = shc(trystr);
-
-    
-    if(hc == hash)
-    {
-        printf("Collision found with hashcode %d for string  ┤%s├\n", hc, trystr);
-    }
-    else
-    {
-        int tam = 0;
-        
-
-        while(trystr[tam]!='\0')
-            tam++;
-
-        char c = '!';
-        int n=0;
-
-        for(int i=0;i<tam-1;i++)
+        if('!' != trystr[i]) 
         {
-            if(c != trystr[i])
-            {
-                n = 1;
-            }
-
-        }
-
-        if(n == 0 && tam >2)
-        {
-            printf("Tam = %d\n", tam-1);
-        }
-
-        if(trystr[tam-1] == ' ')
-        {
-            char * reverse;
-            reverse = (char *) malloc(tam);
-
-            for(int i=tam-1; i>=0; --i) reverse[tam-i-1] = trystr[i];
-
-            hc = shc(reverse);
-            
-            if(hc == hash)
-                printf("Collision found with hashcode %d for string ┤%s├", hc, trystr);
-            
-    
-            free(reverse);
+            n=1;
+            break;
         }
     }
-    free(trystr);
+
+    if(id % 1000000000 == 0) printf("\n----- Id = %lld\n", id);
+
+    if(n == 0) printf("\n***** Tam = %d -> ┤%s├\n", tam, trystr);
 }
 
+__global__ void findcollisions(int hash, int strLength)
+{
+    unsigned long long int id = (unsigned long long int) blockDim.x * (unsigned long long int) blockIdx.x + (unsigned long long int) threadIdx.x + ; //+ i* /*4e40*/;
+
+    char *trystr = id2str(id);
+    int hc;
+
+    int tam = 0;
+    
+    while(trystr[tam]!='\0')
+        tam++;
+
+    showProgress(trystr, tam, id);
+
+    hc = shc(trystr, tam);
+
+    if(hc == hash) 
+        printf("Collision found for string ┤%s├. Hashcode %d\n", trystr, hc);
+
+    if(trystr[tam-1] == ' ')
+    {
+        char * reverse = (char *) malloc(tam+1);
+
+        for(int i=tam-1; i>=0; --i)
+            reverse[tam-i-1] = trystr[i];
+
+        reverse[tam] = '\0';
+
+        hc = shc(reverse, tam);
+        
+        if(hc == hash)
+            printf("Collision found for string ┤%s├. Hashcode %d\n", reverse, hc);
+
+        free(reverse);
+    }
+    free(trystr);
+
+}
 
 int main(void)
 {
     char* input_string= NULL;
 
     printf("Introduce una cadena: ");
-
    
     input_string = getstr(stdin, input_string);
-    int hash = shc(input_string);
-    
-    printf("hashcode: %d\n\n", hash);
 
-    findcollisions<<<1073741824,1024>>>(hash, 0); //<<<2^23, 2^10>>>
+    int hash = shc(input_string, strlen(input_string));
 
+    printf("\nSearching collisions for hashcode of ┤%s├: %d\n →→ START ←←\n\n", input_string, hash);
+
+    findcollisions<<<pow(2,23),pow(2,10)>>>(hash, 0); //<<<2^23, 2^10>>>
    
     cudaDeviceSynchronize();
     
+    printf("\n →→ END ←←\n\n");
+
     free(input_string);
 
     return 0;
