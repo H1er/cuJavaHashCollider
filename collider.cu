@@ -152,7 +152,7 @@ int main(void)
     
     printf("\n →→ END ←←\n\n");
 
-    free(input_string);
+    free(input_string); 
 
     return 0;
 }
