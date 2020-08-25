@@ -140,11 +140,11 @@ int main(void)
 
     int length = strlen(input_string);
 
-    unsigned long long int sum = 0;//pow(96, length-1) - pow(96, length-3);
+    unsigned long long int sum = 0; //pow(96, length-1) - pow(96, length-3);
 
     int hash = shc(input_string, length);
 
-    printf("\nSearching collisions for hashcode of ┤%s├: %d\n →→ START ←←\n\n", input_string, hash);
+    printf("\nSearching collisions for hashcode of ┤%s├: %d\n\n →→ START ←←\n\n", input_string, hash);
 
     findcollisions<<<pow(2,23),pow(2,10)>>>(hash, sum); //<<<2^23, 2^10>>>
    
